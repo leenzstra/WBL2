@@ -1,0 +1,298 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>dev05: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">dev05/task.go (55.2%)</option>
+				
+				<option value="file1">dev05/utils.go (100.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "bufio"
+        "flag"
+        "fmt"
+        "io"
+        "log"
+        "os"
+        "regexp"
+        "strings"
+)
+
+/*
+=== Утилита grep ===
+
+Реализовать утилиту фильтрации (man grep)
+
+Поддержать флаги:
+-A - "after" печатать +N строк после совпадения !
+-B - "before" печатать +N строк до совпадения !
+-C - "context" (A+B) печатать ±N строк вокруг совпадения !
+-c - "count" (количество строк)
+-i - "ignore-case" (игнорировать регистр) !
+-v - "invert" (вместо совпадения, исключать) !
+-F - "fixed", точное совпадение со строкой, не паттерн !
+-n - "line num", печатать номер строки
+
+Программа должна проходить все тесты. Код должен проходить проверки go vet и golint.
+*/
+
+// Читаем исходные данные из файла
+func readInput(file string) []string <span class="cov0" title="0">{
+        f, err := os.Open(file)
+        if err != nil </span><span class="cov0" title="0">{
+                fmt.Println(err)
+        }</span>
+        <span class="cov0" title="0">defer f.Close()
+
+        sc := bufio.NewScanner(f)
+        data := make([]string, 0)
+
+        for sc.Scan() </span><span class="cov0" title="0">{
+                data = append(data, sc.Text())
+        }</span>
+
+        <span class="cov0" title="0">return data</span>
+}
+
+// Поиск совпадений в строках (ignoreCase, invert, fixed)
+func findMatches(lines []string, pattern string, ignoreCase, invert, fixed bool) (matches []int, err error) <span class="cov8" title="1">{
+        var re *regexp.Regexp
+
+        // Меняем регулярное выражение в зависимости от ignoreCase
+        if ignoreCase </span><span class="cov8" title="1">{
+                re, err = regexp.Compile(strings.ToLower(pattern))
+        }</span> else<span class="cov8" title="1"> {
+                re, err = regexp.Compile(pattern)
+        }</span>
+        <span class="cov8" title="1">if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">for i, line := range lines </span><span class="cov8" title="1">{
+                // Ищем совпадение в зависмости от параметров
+                idxMatched := false
+                // Если fixed, то ищем полное совпадение строки
+                if fixed </span><span class="cov8" title="1">{
+                        idxMatched = line == pattern
+                // Если ignoreCase, то ищем совпадение строки и паттерна в нижнем регистре
+                }</span> else<span class="cov8" title="1"> if ignoreCase </span><span class="cov8" title="1">{
+                        idxMatched = re.Match([]byte(strings.ToLower(line)))
+                // Если ни то, ни другое, то ищем совпадение строки и паттерна в изначальных формах
+                }</span> else<span class="cov8" title="1"> {
+                        idxMatched = re.Match([]byte(line))
+                }</span>
+
+                // Инвертируем совпадение
+                <span class="cov8" title="1">if invert </span><span class="cov8" title="1">{
+                        idxMatched = !idxMatched
+                }</span>
+
+                // Добавляем совпадение (индекс строки!!!)
+                <span class="cov8" title="1">if idxMatched </span><span class="cov8" title="1">{
+                        matches = append(matches, i)
+                }</span>
+        }
+
+        <span class="cov8" title="1">return</span>
+}
+
+// Добавление окружеющих строк (before, after, contexr)
+func addOffset(matches []int, maxLines, before, after, context int) (newMatches []int) <span class="cov8" title="1">{
+        // Если указаны before, after и context
+        // то выбираем наибольшнее смещение
+        if context &gt; before </span><span class="cov8" title="1">{
+                before = context
+
+        }</span>
+        <span class="cov8" title="1">if context &gt; after </span><span class="cov8" title="1">{
+                after = context
+        }</span>
+
+        <span class="cov8" title="1">for _, match := range matches </span><span class="cov8" title="1">{
+                // Добавить строки ДО
+                for j := clamp(match-before,0,match); j != match; j++ </span><span class="cov8" title="1">{
+                        newMatches = append(newMatches, j)
+                }</span>
+                // добавить совпадение
+                <span class="cov8" title="1">newMatches = append(newMatches, match)
+                // добавить строки ПОСЛЕ
+                for j, a := match + 1, 0; j &lt; maxLines &amp;&amp; a &lt; after; j, a = j+1, a+1 </span><span class="cov8" title="1">{
+                        newMatches = append(newMatches, j)
+                }</span>
+        }
+
+        <span class="cov8" title="1">return</span>
+}
+
+// вывод совпадений (count, lineNum)
+func output(writer io.Writer, matches []int, lines []string, count, lineNum bool) <span class="cov8" title="1">{
+        for _, matchIdx := range matches </span><span class="cov8" title="1">{
+                // Вывод с номером строки в изначальном файле
+                if lineNum </span><span class="cov8" title="1">{
+                        fmt.Fprintf(writer, "%d. %s\n", matchIdx+1, lines[matchIdx])
+                // Без номера
+                }</span> else<span class="cov0" title="0"> {
+                        fmt.Fprintf(writer, "%s\n", lines[matchIdx])
+                }</span>
+        }
+
+        // В конце вывод кол-ва строк
+        <span class="cov8" title="1">if count </span><span class="cov8" title="1">{
+                fmt.Fprint(writer,len(matches))
+        }</span>
+}
+
+func run(lines []string, pattern string, ignoreCase, invert, fixed, count, lineNum bool, before, after, context int, out io.Writer) <span class="cov8" title="1">{
+        // Ищем совпадения
+        matches, err := findMatches(lines, pattern, ignoreCase, invert, fixed)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatal(err)
+        }</span>
+
+        // Добавляем оффсеты
+        <span class="cov8" title="1">matchesWithOffset := addOffset(matches, len(lines), before, after, context)
+
+        // Выводим куда удобно
+        output(out, matchesWithOffset, lines, count, lineNum)</span>
+}
+
+func main() <span class="cov0" title="0">{
+        var (
+                after, before, context                    int
+                count, ignoreCase, invert, fixed, lineNum bool
+        )
+
+        flag.IntVar(&amp;after, "A", 0, "печатать +N строк после совпадения")
+        flag.IntVar(&amp;before, "B", 0, "печатать +N строк до совпадения")
+        flag.IntVar(&amp;context, "C", 0, "печатать ±N строк вокруг совпадения")
+        flag.BoolVar(&amp;count, "c", false, "количество строк")
+        flag.BoolVar(&amp;ignoreCase, "i", false, "игнорировать регистр")
+        flag.BoolVar(&amp;invert, "v", false, "вместо совпадения, исключать")
+        flag.BoolVar(&amp;fixed, "F", false, "точное совпадение со строкой")
+        flag.BoolVar(&amp;lineNum, "n", false, "печатать номер строки")
+
+        flag.Parse()
+
+        // Проверка кол-ва аргументов
+        if flag.NArg() &lt; 2 </span><span class="cov0" title="0">{
+                fmt.Println("go run . [опции] &lt;шаблон&gt; &lt;файл&gt;")
+                flag.PrintDefaults()
+                os.Exit(1)
+        }</span>
+
+        // Паттерн
+        <span class="cov0" title="0">pattern := flag.Arg(0)
+        // Файл со строками
+        inputFile := flag.Arg(1)
+
+        // Читаем троки из файла
+        lines := readInput(inputFile)
+
+        run(lines, pattern, ignoreCase, invert, fixed, count, lineNum, before, after, context, os.Stdout)</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package main
+
+import "math"
+
+func clamp(val, lb, rb int) int <span class="cov8" title="1">{
+        return int(math.Max(float64(lb), math.Min(float64(val), float64(rb))))
+}</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

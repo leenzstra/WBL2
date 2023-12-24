@@ -1,0 +1,235 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>dev04: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">dev04/task.go (86.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+/*
+=== Поиск анаграмм по словарю ===
+
+Напишите функцию поиска всех множеств анаграмм по словарю.
+Например:
+'пятак', 'пятка' и 'тяпка' - принадлежат одному множеству,
+'листок', 'слиток' и 'столик' - другому.
+
+Входные данные для функции: ссылка на массив - каждый элемент которого - слово на русском языке в кодировке utf8.
+Выходные данные: Ссылка на мапу множеств анаграмм.
+Ключ - первое встретившееся в словаре слово из множества
+Значение - ссылка на массив, каждый элемент которого, слово из множества. Массив должен быть отсортирован по возрастанию.
+Множества из одного элемента не должны попасть в результат.
+Все слова должны быть приведены к нижнему регистру.
+В результате каждое слово должно встречаться только один раз.
+
+Программа должна проходить все тесты. Код должен проходить проверки go vet и golint.
+*/
+
+import (
+        "fmt"
+        "slices"
+        "strings"
+)
+
+type AnagramFinder struct {
+        words []string
+}
+
+func NewAnagramFinder(words []string) *AnagramFinder <span class="cov8" title="1">{
+        return &amp;AnagramFinder{
+                words: words,
+        }
+}</span>
+
+// Подготовка данных:
+// Примведение в lowercase и удаление дубликатов
+func (a *AnagramFinder) prepare() []string <span class="cov8" title="1">{
+        set := make(map[string]struct{})
+        newWords := make([]string, 0)
+
+        for _, w := range a.words </span><span class="cov8" title="1">{
+                wlc := strings.ToLower(w)
+                // Удаление дубликатов
+                if _, exists := set[wlc]; !exists </span><span class="cov8" title="1">{
+                        set[wlc] = struct{}{}
+                        newWords = append(newWords, wlc)
+                }</span>
+        }
+
+        <span class="cov8" title="1">return newWords</span>
+}
+
+// Проверка являются ли слвова анаграммой
+func (a *AnagramFinder) isAnagram(w1, w2 string) bool <span class="cov8" title="1">{
+        if len(w1) != len(w2) </span><span class="cov8" title="1">{
+                return false
+        }</span>
+
+        // Подсчет символов в каждом слове
+        <span class="cov8" title="1">w1Runes := make(map[rune]int)
+        w2Runes := make(map[rune]int)
+
+        for _, r := range w1 </span><span class="cov8" title="1">{
+                w1Runes[r]++
+        }</span>
+
+        <span class="cov8" title="1">for _, r := range w2 </span><span class="cov8" title="1">{
+                w2Runes[r]++
+        }</span>
+
+        // Проверяем, что кол-во уникальных символов совпадает
+        <span class="cov8" title="1">if len(w1Runes) != len(w2Runes) </span><span class="cov0" title="0">{
+                return false
+        }</span>
+
+        // Сравниваем кол-во символов
+        <span class="cov8" title="1">for r1, count1 := range w1Runes </span><span class="cov8" title="1">{
+                if count2, ok := w2Runes[r1]; !ok || count1 != count2 </span><span class="cov0" title="0">{
+                        return false
+                }</span>
+        }
+
+        <span class="cov8" title="1">return true</span>
+}
+
+// Поиск групп анаграмм
+func (a *AnagramFinder) FindGroups() map[string][]string <span class="cov8" title="1">{
+        // Подготовка слов
+        prepWords := a.prepare()
+        // Выделение памяти под группы
+        groups := make(map[string][]string)
+
+        // Каждое слово сравниваем с ключами групп
+        // Если ключ и слово = анаграмма, то добавляем в массив группы
+        // Если анаграммы не нашлось, то добавляем новую группу
+        for _, word := range prepWords </span><span class="cov8" title="1">{
+                foundAnagram := false
+
+                for k := range groups </span><span class="cov8" title="1">{
+                        if a.isAnagram(k, word) </span><span class="cov8" title="1">{
+                                groups[k] = append(groups[k], word)
+                                foundAnagram = true
+                                break</span>
+                        }
+                }        
+                <span class="cov8" title="1">if !foundAnagram </span><span class="cov8" title="1">{
+                        groups[word] = append(groups[word], word)
+                }</span>
+        }
+
+        // Удаление множетств из 1 элемента и сортировка остальных
+        <span class="cov8" title="1">for k, v := range groups </span><span class="cov8" title="1">{
+                if len(v) == 1 </span><span class="cov8" title="1">{
+                        delete(groups, k)
+                }</span> else<span class="cov8" title="1"> {
+                        slices.Sort(v)
+                }</span>
+        }
+
+        <span class="cov8" title="1">return groups</span>
+}
+
+func main() <span class="cov0" title="0">{
+        data := []string{"пятак", "слиток","ПЯТКА", "пятка", "тяпка", "листок", "СтоЛИК", "листок","тилокс", "игорь","гигорь","гогирь"}
+        finder := NewAnagramFinder(data)
+        for k, v := range finder.FindGroups() </span><span class="cov0" title="0">{
+                fmt.Printf("%s:\t %v\n", k, v)
+        }</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

@@ -1,0 +1,72 @@
+go run . -n -c -C 1 -F "Tellus mauris a diam maecenas congue." .\input.txt > out.txt
+
+13. Risus sed vulputate odio ut enim blandit volutpat maecenas volutpat.
+14. Tellus mauris a diam maecenas congue.
+15. Dis parturient montes nascetur ridiculus.
+3
+
+-------------------------------------------
+
+go run . -n -B 1 -A 5 congue .\input.txt 
+
+3. Arcu felis bibendum ut tristique et egestas.
+4. A arcu cursus vitae congue.
+5. Quis viverra nibh cras pulvinar mattis nunc sed blandit.
+6. Mattis rhoncus urna neque viverra justo nec ultrices dui sapien.
+7. Rhoncus urna neque viverra justo nec ultrices dui.
+8. Tortor posuere ac ut consequat semper viverra nam libero justo.
+9. Maecenas ultricies mi eget mauris pharetra et.
+13. Risus sed vulputate odio ut enim blandit volutpat maecenas volutpat.
+14. Tellus mauris a diam maecenas congue.
+15. Dis parturient montes nascetur ridiculus.
+16. Fermentum leo vel orci porta non pulvinar neque.
+17. Ipsum consequat nisl vel pretium lectus.
+18. Nisl tincidunt eget nullam non nisi est sit amet facilisis.
+19. Leo urna molestie at elementum eu facilisis sed odio morbi.
+
+--------------------------------------------
+
+go run . -n -i "urna" .\input.txt
+
+6. Mattis rhoncus urna neque viverra justo nec ultrices dui sapien.
+7. Rhoncus urna neque viverra justo nec ultrices dui.
+19. Leo urna molestie at elementum eu facilisis sed odio morbi.
+20. Urna neque viverra justo nec ultrices dui.
+
+--------------------------------------------
+
+go run . -n "urna" .\input.txt 
+
+6. Mattis rhoncus urna neque viverra justo nec ultrices dui sapien.
+7. Rhoncus urna neque viverra justo nec ultrices dui.
+19. Leo urna molestie at elementum eu facilisis sed odio morbi.
+
+--------------------------------------------
+
+go run . -i -n "leo" .\input.txt  // все строки с "leo"
+
+16. Fermentum leo vel orci porta non pulvinar neque.
+19. Leo urna molestie at elementum eu facilisis sed odio morbi.
+
+--------------------------------------------
+
+go run . -i -v -n "leo" .\input.txt    // все строки без "leo"
+
+1. Lorem ipsum dolor sit amet, consectetur adipiscing elit
+2. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+3. Arcu felis bibendum ut tristique et egestas.
+4. A arcu cursus vitae congue.
+5. Quis viverra nibh cras pulvinar mattis nunc sed blandit.
+6. Mattis rhoncus urna neque viverra justo nec ultrices dui sapien.
+7. Rhoncus urna neque viverra justo nec ultrices dui.
+8. Tortor posuere ac ut consequat semper viverra nam libero justo.
+9. Maecenas ultricies mi eget mauris pharetra et.
+10. Quam pellentesque nec nam aliquam sem et tortor consequat.
+11. Aliquam sem et tortor consequat id porta nibh venenatis cras.
+12. Quam vulputate dignissim suspendisse in est ante in.
+13. Risus sed vulputate odio ut enim blandit volutpat maecenas volutpat.
+14. Tellus mauris a diam maecenas congue.
+15. Dis parturient montes nascetur ridiculus.
+17. Ipsum consequat nisl vel pretium lectus.
+18. Nisl tincidunt eget nullam non nisi est sit amet facilisis.
+20. Urna neque viverra justo nec ultrices dui.

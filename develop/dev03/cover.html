@@ -1,0 +1,464 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>dev03: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">dev03/datatable.go (79.2%)</option>
+				
+				<option value="file1">dev03/sort_strategy.go (74.0%)</option>
+				
+				<option value="file2">dev03/task.go (2.6%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "fmt"
+        "sort"
+        "strings"
+)
+
+// type Sort interface {
+//      Len() int
+//      Less (i, j) bool
+//      Swap(i, j int)
+// }
+
+// Структура, содержащая данные и стратегию их сортировки
+// Удовлетворяет интерфейсу Sort
+type DataTable struct {
+        data         [][]string
+        sortStrategy SortStrategy
+}
+
+
+func NewDataTable(data [][]string) *DataTable <span class="cov8" title="1">{
+        t := &amp;DataTable{
+                data: data,
+        }
+
+        // По дефолту сортировка по строкам, по 1 столбцу
+        t.sortStrategy = StringSortStrategy{t: t}
+
+        return t
+}</span>
+
+// Установка стратегии сортировки
+func (t *DataTable) SetSortStrategy(s SortStrategy) <span class="cov8" title="1">{
+        t.sortStrategy = s
+}</span>
+
+func (t DataTable) Data() [][]string <span class="cov8" title="1">{
+        return t.data
+}</span>
+
+func (t DataTable) SortStrategy() SortStrategy <span class="cov0" title="0">{
+        return t.sortStrategy
+}</span>
+
+func (t DataTable) Len() int <span class="cov8" title="1">{
+        return len(t.data)
+}</span>
+
+func (t DataTable) Less(i, j int) bool <span class="cov8" title="1">{
+        return t.sortStrategy.Less(&amp;t, i, j)
+}</span>
+
+func (t DataTable) Swap(i, j int) <span class="cov8" title="1">{
+        t.data[i], t.data[j] = t.data[j], t.data[i]
+}</span>
+
+func (t DataTable) String() string <span class="cov0" title="0">{
+        strs := make([]string, t.Len())
+        for i := range t.data </span><span class="cov0" title="0">{
+                strs[i] = strings.Join(t.data[i], " ")
+        }</span>
+        <span class="cov0" title="0">return strings.Join(strs, "\n")</span>
+}
+
+func (t *DataTable) Sort() <span class="cov8" title="1">{
+        sort.Sort(t)
+}</span>
+
+func (t *DataTable) ReverseSort() <span class="cov8" title="1">{
+        sort.Sort(sort.Reverse(t))
+}</span>
+
+func (t *DataTable) Unique() <span class="cov8" title="1">{
+        m := make(map[string]bool)
+    uniques := make([][]string, 0)
+
+    for _, row := range t.data </span><span class="cov8" title="1">{
+                rowString := fmt.Sprint(row)
+        if _, ok := m[rowString]; !ok </span><span class="cov8" title="1">{
+            m[rowString] = true
+            uniques = append(uniques, row)
+        }</span>
+    }
+
+        <span class="cov8" title="1">t.data = uniques</span>
+}
+
+func (t DataTable) IsSorted() bool <span class="cov8" title="1">{
+        return sort.IsSorted(t)
+}</span>
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package main
+
+import (
+        "strconv"
+        "strings"
+        "time"
+        "unicode"
+)
+
+// Стратегии сортировки данных
+
+type SortStrategy interface {
+        Less(t *DataTable, i, j int) bool
+}
+
+// Каждая стратегия содержит указатель на структуру данных
+// Колонку, по которой сортируем
+// и игнорирование пробельных символов
+
+// Числовая сортировка
+type NumericSortStrategy struct {
+        t                    *DataTable
+        col                  int
+        ignoreTrailingSpaces bool
+}
+
+func (s NumericSortStrategy) Less(t *DataTable, i, j int) bool <span class="cov8" title="1">{
+        n1 := s.t.data[i][s.col]
+        n2 := s.t.data[j][s.col]
+
+        if s.ignoreTrailingSpaces </span><span class="cov0" title="0">{
+                n1 = strings.TrimRight(n1, " ")
+                n2 = strings.TrimRight(n2, " ")
+        }</span>
+
+        <span class="cov8" title="1">i1, err := strconv.Atoi(n1)
+        if err != nil </span><span class="cov0" title="0">{
+                i1 = 0
+        }</span>
+        <span class="cov8" title="1">i2, err := strconv.Atoi(n2)
+        if err != nil </span><span class="cov0" title="0">{
+                i2 = 0
+        }</span>
+
+        <span class="cov8" title="1">return i1 &lt; i2</span>
+}
+
+// Строковая сортировка
+type StringSortStrategy struct {
+        t                    *DataTable
+        col                  int
+        ignoreTrailingSpaces bool
+}
+
+func (s StringSortStrategy) Less(t *DataTable, i, j int) bool <span class="cov8" title="1">{
+        n1 := t.data[i][s.col]
+        n2 := t.data[j][s.col]
+
+        if s.ignoreTrailingSpaces </span><span class="cov0" title="0">{
+                n1 = strings.TrimRight(n1, " ")
+                n2 = strings.TrimRight(n2, " ")
+        }</span>
+
+        <span class="cov8" title="1">return n1 &lt; n2</span>
+}
+
+// Сортировка по названию месяца
+type MonthSortStrategy struct {
+        t                    *DataTable
+        col                  int
+        ignoreTrailingSpaces bool
+}
+
+func (s MonthSortStrategy) Less(t *DataTable, i, j int) bool <span class="cov8" title="1">{
+
+        n1 := t.data[i][s.col]
+        n2 := t.data[j][s.col]
+
+        if s.ignoreTrailingSpaces </span><span class="cov0" title="0">{
+                n1 = strings.TrimRight(n1, " ")
+                n2 = strings.TrimRight(n2, " ")
+        }</span>
+        <span class="cov8" title="1">t1, err := time.Parse("January", n1)
+        if err != nil </span><span class="cov0" title="0">{
+                t1 = time.Time{}
+        }</span>
+        <span class="cov8" title="1">t2, err := time.Parse("January", n2)
+        if err != nil </span><span class="cov0" title="0">{
+                t2 = time.Time{}
+        }</span>
+
+        <span class="cov8" title="1">return t1.Before(t2)</span>
+}
+
+// Сортировка по числу с суффиксом
+type NumberSufSortStrategy struct {
+        t                    *DataTable
+        col                  int
+        ignoreTrailingSpaces bool
+}
+
+func (s NumberSufSortStrategy) getSuffix(str string) (int, string) <span class="cov8" title="1">{
+        num := ""
+        suf := ""
+
+        for i := len(str) - 1; i &gt;= 0; i-- </span><span class="cov8" title="1">{
+                if unicode.IsDigit(rune(str[i])) || str[i] == '-' </span><span class="cov8" title="1">{
+                        num = string(str[i]) + num
+                }</span> else<span class="cov8" title="1"> {
+                        suf = string(str[i]) + suf
+                }</span>
+        }
+
+        <span class="cov8" title="1">n, err := strconv.Atoi(num)
+        if err != nil </span><span class="cov0" title="0">{
+                n = 0
+        }</span>
+
+        <span class="cov8" title="1">return n, suf</span>
+}
+
+func (s NumberSufSortStrategy) Less(t *DataTable, i, j int) bool <span class="cov8" title="1">{
+
+        n1 := t.data[i][s.col]
+        n2 := t.data[j][s.col]
+
+        if s.ignoreTrailingSpaces </span><span class="cov0" title="0">{
+                n1 = strings.TrimRight(n1, " ")
+                n2 = strings.TrimRight(n2, " ")
+        }</span>
+
+        <span class="cov8" title="1">num1, suf1 := s.getSuffix(n1)
+        num2, suf2 := s.getSuffix(n2)
+
+        if num1 == num2 </span><span class="cov8" title="1">{
+                return suf1 &lt; suf2
+        }</span> 
+
+        <span class="cov8" title="1">return num1 &lt; num2</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package main
+
+import (
+        "bufio"
+        "flag"
+        "fmt"
+        "os"
+        "strings"
+)
+
+/*
+=== Утилита sort ===
+
+Отсортировать строки (man sort)
+Основное
+
+Поддержать ключи
+
+-k — указание колонки для сортировки
+-n — сортировать по числовому значению
+-r — сортировать в обратном порядке
+-u — не выводить повторяющиеся строки
+
+Дополнительное
+
+Поддержать ключи
+
+-M — сортировать по названию месяца
+-b — игнорировать хвостовые пробелы
+-c — проверять отсортированы ли данные
+-h — сортировать по числовому значению с учётом суффиксов
+
+Программа должна проходить все тесты. Код должен проходить проверки go vet и golint.
+*/
+
+func splitRow(s, sep string) []string <span class="cov8" title="1">{
+        return strings.Split(s, sep)
+}</span>
+
+// Читаем исходные данные из файла
+func readInput(file string) [][]string <span class="cov0" title="0">{
+        f, err := os.Open(file)
+        if err != nil </span><span class="cov0" title="0">{
+                fmt.Println(err)
+        }</span>
+        <span class="cov0" title="0">defer f.Close()
+
+        sc := bufio.NewScanner(f)
+        data := make([][]string, 0)
+
+        for sc.Scan() </span><span class="cov0" title="0">{
+                data = append(data, splitRow(sc.Text(), " "))
+        }</span>
+
+        <span class="cov0" title="0">return data</span>
+}
+
+func main() <span class="cov0" title="0">{
+        var (
+                inputFile                                        string
+                sortColumn                                       int
+                numeric, reverse, unique, monthSort              bool
+                ignoreTrailingSpaces, checkSorted, numericSuffix bool
+        )
+
+        flag.StringVar(&amp;inputFile, "i", "input.txt", "input file")
+
+        flag.IntVar(&amp;sortColumn, "k", 0, "sort column index")
+        flag.BoolVar(&amp;numeric, "n", false, "numeric sort")
+        flag.BoolVar(&amp;reverse, "r", false, "reverse sort")
+        flag.BoolVar(&amp;unique, "u", false, "unique only")
+
+        flag.BoolVar(&amp;monthSort, "M", false, "month name sort")
+        flag.BoolVar(&amp;ignoreTrailingSpaces, "b", false, "ignore trailing spaces")
+        flag.BoolVar(&amp;checkSorted, "c", false, "check is sorted")
+        flag.BoolVar(&amp;numericSuffix, "h", false, "number + suffix sort")
+
+        // Парсим аргументы
+        flag.Parse()
+
+        // Читаем данные их файла
+        data := readInput(inputFile)
+
+        // Создаем объект таблицы с данными
+        t := NewDataTable(data)
+
+        // Выбираем стратегию сортировки
+        if numeric </span><span class="cov0" title="0">{
+                t.SetSortStrategy(NumericSortStrategy{t: t, col: sortColumn,
+                        ignoreTrailingSpaces: ignoreTrailingSpaces})
+        }</span> else<span class="cov0" title="0"> if monthSort </span><span class="cov0" title="0">{
+                t.SetSortStrategy(MonthSortStrategy{t: t, col: sortColumn,
+                        ignoreTrailingSpaces: ignoreTrailingSpaces})
+        }</span> else<span class="cov0" title="0"> if numericSuffix </span><span class="cov0" title="0">{
+                t.SetSortStrategy(NumberSufSortStrategy{t: t, col: sortColumn,
+                        ignoreTrailingSpaces: ignoreTrailingSpaces})
+        }</span> else<span class="cov0" title="0"> {
+                t.SetSortStrategy(StringSortStrategy{t: t, col: sortColumn,
+                        ignoreTrailingSpaces: ignoreTrailingSpaces})
+        }</span>
+
+        // Сортируем в выбранном порядке
+        <span class="cov0" title="0">if reverse </span><span class="cov0" title="0">{
+                t.ReverseSort()
+        }</span> else<span class="cov0" title="0"> {
+                t.Sort()
+        }</span>
+
+        // Выбираем только уникальные строки
+        <span class="cov0" title="0">if unique </span><span class="cov0" title="0">{
+                t.Unique()
+        }</span>
+
+        // Проверка на отсортированность
+        <span class="cov0" title="0">if checkSorted </span><span class="cov0" title="0">{
+                fmt.Println("sorted:", t.IsSorted())
+        }</span>
+
+        <span class="cov0" title="0">fmt.Println(t)</span>
+
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
