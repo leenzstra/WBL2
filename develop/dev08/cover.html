@@ -1,0 +1,472 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>dev08: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">dev08/command.go (82.1%)</option>
+				
+				<option value="file1">dev08/shell.go (63.3%)</option>
+				
+				<option value="file2">dev08/task.go (0.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "bytes"
+        "flag"
+        "fmt"
+        "net"
+        "os"
+        "os/exec"
+        "strconv"
+        "strings"
+
+        "github.com/mitchellh/go-ps"
+)
+
+// Интерфейс команды
+type Command interface {
+        Execute() error
+        Output() []byte
+        SetInput([]byte)
+}
+
+type InOutCommand struct {
+        out *bytes.Buffer
+        in  *bytes.Buffer
+}
+
+func NewInOutCommand() InOutCommand <span class="cov8" title="1">{
+        return InOutCommand{
+                out: new(bytes.Buffer),
+                in:  new(bytes.Buffer),
+        }
+}</span>
+
+func (c *InOutCommand) Output() []byte <span class="cov8" title="1">{
+        return c.out.Bytes()
+}</span>
+
+func (c *InOutCommand) SetInput(b []byte) <span class="cov8" title="1">{
+        c.in.Write(b)
+}</span>
+
+// команда "cd"
+type CdCommand struct {
+        Args []string
+        InOutCommand
+}
+
+func (c *CdCommand) Execute() error <span class="cov8" title="1">{
+        if len(c.Args) &lt; 1 </span><span class="cov0" title="0">{
+                return fmt.Errorf("len(c.Args) &lt; 1")
+        }</span>
+        <span class="cov8" title="1">return os.Chdir(c.Args[0])</span>
+}
+
+// команда "pwd"
+type PwdCommand struct {
+        Args []string
+        InOutCommand
+}
+
+func (c *PwdCommand) Execute() error <span class="cov8" title="1">{
+        dir, err := os.Getwd()
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">fmt.Fprint(c.out, dir)
+        return nil</span>
+}
+
+// команда "echo"
+type EchoCommand struct {
+        Args []string
+        InOutCommand
+}
+
+func (c *EchoCommand) Execute() error <span class="cov8" title="1">{
+        if len(c.Args) &gt; 0 </span><span class="cov8" title="1">{
+                fmt.Fprint(c.out, strings.Join(c.Args, " "))
+                return nil
+        }</span>
+
+        <span class="cov8" title="1">if c.in.Len() != 0 </span><span class="cov8" title="1">{
+                fmt.Fprint(c.out, c.in.String())
+                return nil
+        }</span>
+        <span class="cov8" title="1">return fmt.Errorf("no data")</span>
+}
+
+// команда "kill"
+type KillCommand struct {
+        Args []string
+        InOutCommand
+}
+
+func (c KillCommand) Execute() error <span class="cov8" title="1">{
+        if len(c.Args) &lt; 1 </span><span class="cov8" title="1">{
+                return fmt.Errorf("len(c.Args) &lt; 1")
+        }</span>
+
+        <span class="cov8" title="1">pid, err := strconv.Atoi(c.Args[0])
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">p, err := os.FindProcess(pid)
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">return p.Kill()</span>
+}
+
+// команда "ps"
+type PsCommand struct {
+        Args []string
+        InOutCommand
+}
+
+func (c PsCommand) Execute() error <span class="cov8" title="1">{
+        procs, err := ps.Processes()
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">fmt.Fprintf(c.out, "%s\t%s\t%s\n", "N", "PID", "Name")
+        for i, proc := range procs </span><span class="cov8" title="1">{
+                fmt.Fprintf(c.out, "%d\t%d\t%s\n", i+1, proc.Pid(), proc.Executable())
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// команда "q"
+type QCommand struct {
+        Args []string
+        InOutCommand
+}
+
+func (c QCommand) Execute() error <span class="cov0" title="0">{
+        os.Exit(0)
+        return nil
+}</span>
+
+// команда "exec"
+type ExecCommand struct {
+        Args []string
+        InOutCommand
+}
+
+func (c ExecCommand) Execute() error <span class="cov8" title="1">{
+        cmd := exec.Command(c.Args[0], c.Args[1:]...)
+        cmd.Stdin = c.in
+        cmd.Stdout = c.out
+
+        return cmd.Run()
+}</span>
+
+// команда "fork"
+type ForkCommand struct {
+        Args []string
+        InOutCommand
+}
+
+func (c ForkCommand) Execute() error <span class="cov0" title="0">{
+        return fmt.Errorf("not supported :(")
+}</span>
+
+// команда "netcat"
+type NetcatCommand struct {
+        Args []string
+        InOutCommand
+}
+
+func (c NetcatCommand) Execute() error <span class="cov8" title="1">{
+        var (
+                protocol, addr string
+                port           int
+                conn           net.Conn
+        )
+
+        fs := flag.NewFlagSet("netcat", flag.ContinueOnError)
+        fs.IntVar(&amp;port, "p", 5000, "port value")
+        fs.StringVar(&amp;addr, "a", "localhost", "addr value")
+        fs.StringVar(&amp;protocol, "P", "tcp", "protocol value")
+        if err := fs.Parse(c.Args); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">conn, err := net.Dial(protocol, fmt.Sprintf("%s:%d", addr, port))
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">defer conn.Close()
+
+        _, err = conn.Write(c.in.Bytes())
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package main
+
+import (
+        "bufio"
+        "bytes"
+        "fmt"
+        "io"
+        "os"
+        "path/filepath"
+        "strings"
+)
+
+const (
+        pipeOp = "|"
+)
+
+type Shell struct{}
+
+func NewShell() *Shell <span class="cov8" title="1">{
+        return &amp;Shell{}
+}</span>
+
+func (sh *Shell) Run() <span class="cov0" title="0">{
+        scanner := bufio.NewScanner(os.Stdin)
+        sh.invite()
+
+        for scanner.Scan() </span><span class="cov0" title="0">{
+                cmdStr := scanner.Text()
+                err := sh.exec(cmdStr)
+                if err != nil </span><span class="cov0" title="0">{
+                        fmt.Fprintln(os.Stderr, err)
+                }</span>
+
+                <span class="cov0" title="0">sh.invite()</span>
+        }
+}
+
+func (sh *Shell) exec(cmd string) error <span class="cov8" title="1">{
+        if strings.Contains(cmd, pipeOp) </span><span class="cov8" title="1">{
+                cmds := strings.Split(cmd, pipeOp)
+                for i, c := range cmds </span><span class="cov8" title="1">{
+                        cmds[i] = strings.Trim(c, " ")
+                }</span>
+
+                <span class="cov8" title="1">out, err := sh.pipe(cmds)
+                if err != nil </span><span class="cov8" title="1">{
+                        return err
+                }</span>
+
+                <span class="cov8" title="1">fmt.Fprintln(os.Stdout, string(out))</span>
+
+        } else<span class="cov8" title="1"> {
+                cmd, err := sh.findCmd(cmd)
+                if err != nil </span><span class="cov8" title="1">{
+                        return err
+                }</span>
+
+                <span class="cov8" title="1">if err = cmd.Execute(); err != nil </span><span class="cov8" title="1">{
+                        return err
+                }</span>
+
+                <span class="cov8" title="1">fmt.Fprintln(os.Stdout, string(cmd.Output()))</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+func (sh *Shell) invite() <span class="cov0" title="0">{
+        path, err := filepath.Abs(".")
+        if err != nil </span><span class="cov0" title="0">{
+                fmt.Fprintf(os.Stderr, err.Error())
+                os.Exit(1)
+        }</span>
+        <span class="cov0" title="0">fmt.Printf("%s&gt; ", path)</span>
+}
+
+func (sh *Shell) pipe(cmds []string) ([]byte, error) <span class="cov8" title="1">{
+        buf := new(bytes.Buffer)
+
+        for _, cmd := range cmds </span><span class="cov8" title="1">{
+                cmd, err := sh.findCmd(cmd)
+                if err != nil </span><span class="cov8" title="1">{
+                        return nil, err
+                }</span>
+
+                <span class="cov8" title="1">nextInput, err := io.ReadAll(buf)
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+
+                <span class="cov8" title="1">cmd.SetInput(nextInput)
+
+                if err = cmd.Execute(); err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+
+                <span class="cov8" title="1">buf.Reset()
+                if _, err := buf.Write(cmd.Output()); err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+        }
+
+        <span class="cov8" title="1">return buf.Bytes(), nil</span>
+}
+
+func (sh *Shell) findCmd(cmd string) (Command, error) <span class="cov8" title="1">{
+        cmdArgs := strings.Split(cmd, " ")
+        if len(cmdArgs) == 0 </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("len(cmdArgs) == 0")
+        }</span>
+
+        <span class="cov8" title="1">cmdName := strings.ToLower(cmdArgs[0])
+        args := cmdArgs[1:]
+
+        switch cmdName </span>{
+        case "cd":<span class="cov8" title="1">
+                return &amp;CdCommand{args, NewInOutCommand()}, nil</span>
+        case "pwd":<span class="cov0" title="0">
+                return &amp;PwdCommand{args, NewInOutCommand()}, nil</span>
+        case "echo":<span class="cov8" title="1">
+                return &amp;EchoCommand{args, NewInOutCommand()}, nil</span>
+        case "kill":<span class="cov0" title="0">
+                return &amp;KillCommand{args, NewInOutCommand()}, nil</span>
+        case "ps":<span class="cov8" title="1">
+                return &amp;PsCommand{args, NewInOutCommand()}, nil</span>
+        case "exec":<span class="cov8" title="1">
+                return &amp;ExecCommand{args, NewInOutCommand()}, nil</span>
+        case "fork":<span class="cov0" title="0">
+                return &amp;ForkCommand{args, NewInOutCommand()}, nil</span>
+        case "nc":<span class="cov0" title="0">
+                return &amp;NetcatCommand{args, NewInOutCommand()}, nil</span>
+        case "q":<span class="cov0" title="0">
+                return &amp;QCommand{args, NewInOutCommand()}, nil</span>
+        default:<span class="cov8" title="1">
+                return nil, fmt.Errorf("command '%s' not found", cmdName)</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package main
+
+/*
+=== Взаимодействие с ОС ===
+
+Необходимо реализовать собственный шелл
+
+встроенные команды: cd/pwd/echo/kill/ps
+поддержать fork/exec команды
+конвеер на пайпах
+
+Реализовать утилиту netcat (nc) клиент
+принимать данные из stdin и отправлять в соединение (tcp/udp)
+
+Программа должна проходить все тесты. Код должен проходить проверки go vet и golint.
+*/
+
+func main() <span class="cov0" title="0">{
+        sh := NewShell()
+        sh.Run()
+}</span>
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

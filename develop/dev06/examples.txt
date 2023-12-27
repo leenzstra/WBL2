@@ -1,0 +1,29 @@
+echo "asd1 asd2 asd3 dsa1 dsa2 das3" | go run . -d " " -f 1-4
+
+asd1 asd2 asd3 dsa1
+
+--------------------------------------
+
+type input.txt | go run . -f 1,2 -s -d " "
+
+test1 test2
+aboba virus
+
+--------------------------------------
+
+type .\input.csv | go run . -f 2,4
+
+Bedrooms,Neighborhood
+4,Rural
+3,Rural
+2,Suburb
+2,Urban
+5,Suburb
+2,Suburb
+2,Suburb
+4,Rural
+4,Urban
+5,Urban
+5,Suburb
+3,Suburb
+2,Suburb
