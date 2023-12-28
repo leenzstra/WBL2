@@ -1,0 +1,252 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>dev10: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">dev10/task.go (30.4%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "bufio"
+        "context"
+        "flag"
+        "fmt"
+        "io"
+        "net"
+        "os"
+        "os/signal"
+        "syscall"
+        "time"
+
+        "golang.org/x/sync/errgroup"
+)
+
+/*
+=== Утилита telnet ===
+
+Реализовать примитивный telnet клиент:
+Примеры вызовов:
+go-telnet --timeout=10s host port
+go-telnet mysite.ru 8080
+go-telnet --timeout=3s 1.1.1.1 123
+
+Программа должна подключаться к указанному хосту (ip или доменное имя) и порту по протоколу TCP.
+После подключения STDIN программы должен записываться в сокет, а данные полученные из сокета должны выводиться в STDOUT
+Опционально в программу можно передать таймаут на подключение к серверу (через аргумент --timeout, по умолчанию 10s).
+
+При нажатии Ctrl+D программа должна закрывать сокет и завершаться. Если сокет закрывается со стороны сервера, программа должна также завершаться.
+При подключении к несуществующему сервер, программа должна завершаться через timeout.
+*/
+
+const (
+        defaultTimeout = 10 * time.Second
+        defaultHost    = "localhost"
+        defaultPort    = 0
+)
+
+type Telnet struct {
+        addr    string
+        timeout time.Duration
+        conn    net.Conn
+}
+
+func NewTelnet(addr string, timeout time.Duration) *Telnet <span class="cov8" title="1">{
+        return &amp;Telnet{
+                addr:    addr,
+                timeout: timeout,
+        }
+}</span>
+
+func (t *Telnet) Connect() error <span class="cov8" title="1">{
+        conn, err := net.DialTimeout("tcp", t.addr, t.timeout)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov8" title="1">t.conn = conn
+        return nil</span>
+}
+
+func (t *Telnet) Disconnect() <span class="cov0" title="0">{
+        t.conn.Close()
+}</span>
+
+func (t *Telnet) rw(ctx context.Context, from io.Reader, to io.Writer) error <span class="cov8" title="1">{
+        r := bufio.NewReader(from)
+
+        for </span><span class="cov8" title="1">{
+                select </span>{
+                case &lt;-ctx.Done():<span class="cov0" title="0">
+                        return nil</span>
+                default:<span class="cov8" title="1">
+                        d, err := r.ReadString('\n')
+                        if err != nil </span><span class="cov8" title="1">{
+                                return err
+                        }</span>
+
+                        <span class="cov8" title="1">if _, err := fmt.Fprint(to, d); err != nil </span><span class="cov0" title="0">{
+                                return err
+                        }</span>
+
+                }
+        }
+}
+
+func (t *Telnet) Write(ctx context.Context, from io.Reader) error <span class="cov8" title="1">{
+        return t.rw(ctx, from, t.conn)
+
+}</span>
+
+func (t *Telnet) Read(ctx context.Context, to io.Writer) error <span class="cov8" title="1">{
+        return t.rw(ctx, t.conn, to)
+}</span>
+
+func main() <span class="cov0" title="0">{
+        var (
+                timeout time.Duration
+        )
+
+        flag.DurationVar(&amp;timeout, "timeout", defaultTimeout, "connection timeout")
+        flag.Parse()
+
+        ctx, cancel := context.WithCancel(context.Background())
+
+        telnet := NewTelnet(parseAddress(), timeout)
+        if err := telnet.Connect(); err != nil </span><span class="cov0" title="0">{
+                fmt.Println(err)
+                os.Exit(1)
+        }</span>
+        <span class="cov0" title="0">defer telnet.Disconnect()
+
+        eg := errgroup.Group{}
+        eg.Go(func() error </span><span class="cov0" title="0">{
+                return telnet.Write(ctx, os.Stdin)
+        }</span>)
+
+        <span class="cov0" title="0">eg.Go(func() error </span><span class="cov0" title="0">{
+                return telnet.Read(ctx, os.Stdout)
+        }</span>)
+
+        <span class="cov0" title="0">go func() </span><span class="cov0" title="0">{
+                interrupt := make(chan os.Signal, 1)
+                signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
+                &lt;-interrupt
+
+                cancel()
+        }</span>()
+
+        <span class="cov0" title="0">if err := eg.Wait(); err != nil </span><span class="cov0" title="0">{
+                fmt.Println(err)
+        }</span>
+}
+
+func parseAddress() string <span class="cov0" title="0">{
+        host := flag.Arg(0)
+        port := flag.Arg(1)
+
+        if host == "" </span><span class="cov0" title="0">{
+                host = defaultHost
+        }</span>
+
+        <span class="cov0" title="0">if port == "" </span><span class="cov0" title="0">{
+                host = defaultHost
+        }</span>
+
+        <span class="cov0" title="0">return fmt.Sprintf("%s:%s", host, port)</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
