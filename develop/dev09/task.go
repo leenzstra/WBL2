@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/panjf2000/ants/v2"
@@ -23,9 +24,16 @@ import (
 Программа должна проходить все тесты. Код должен проходить проверки go vet и golint.
 */
 
+const (
+	defaultPoolSize = 1
+	defaultDepth    = -1
+	defaultUrl      = ""
+	defaultDir      = "."
+)
+
 type wget struct {
-	url *url.URL
-	dir string
+	url   *url.URL
+	dir   string
 	depth int
 
 	pool    *ants.Pool
@@ -34,70 +42,127 @@ type wget struct {
 
 func NewWget(url *url.URL, dir string, pool *ants.Pool, depth int) *wget {
 	return &wget{
-		url:  url,
-		dir:  dir,
-		pool: pool,
-		depth: depth,
+		url:     url,
+		dir:     dir,
+		pool:    pool,
+		depth:   depth,
 		visited: make(map[string]struct{}),
 	}
 }
 
-func (w *wget) RunSync() error {
-	return w.run(w.url.String(), w.depth)
-}
+func (w *wget) RunAsync() error {
+	linksChan := make(chan string)
+	wg := sync.WaitGroup{}
 
-// func (w *wget) RunConc() error {
+	runUrl := func(root string, depth int) error {
+		defer wg.Done()
 
-// }
+		links, err := w.run(root, depth)
+		if err != nil {
+			return err
+		}
 
-func (w *wget) run(root string, depth int) error {
-	if depth == 0 {
-		// fmt.Println(root, "max depth reached")
+		for _, link := range links {
+			linksChan <- link
+		}
+
 		return nil
 	}
-	
-	fmt.Println("Visit", root, "depth", depth)
 
-	p, err := w.download(root)
-	if err != nil {
-		return err
+	// Сабминит первую ссылку
+	wg.Add(1)
+	w.pool.Submit(func() {
+		err := runUrl(w.url.String(), w.depth)
+		if err != nil {
+			fmt.Println(err)
+		}
+	})
+
+	go func() {
+		wg.Wait()
+		close(linksChan)
+	}()
+
+	for link := range linksChan {
+		fmt.Println("link", link)
+		if _, ok := w.visited[link]; !ok {
+			w.visited[link] = struct{}{}
+			wg.Add(1)
+			fmt.Println("add", link)
+			w.pool.Submit(func() {
+				err := runUrl(link, -1)
+				if err != nil {
+					fmt.Println(err)
+				}
+			})
+			fmt.Println("added", link)
+		}
+		fmt.Println("link2", link)
 	}
 
-	url, err := url.Parse(root)
-	if err != nil {
-		return err
-	}
+	return nil
+}
 
-	doc, err := w.parseHtml(bytes.NewReader(p))
-	if err != nil {
-		return err
-	}
+func (w *wget) RunSync() error {
+	return w.runSync(w.url.String(), w.depth)
+}
 
-	err = w.save(url.Path, bytes.NewReader(p))
+func (w *wget) runSync(root string, depth int) error {
+	links, err := w.run(root, depth)
 	if err != nil {
-		return err
-	}
-
-	links, err := w.findLinks(doc)
-	if err != nil {
-		return err
+		return nil
 	}
 
 	for _, link := range links {
 		if _, ok := w.visited[link]; !ok {
 			w.visited[link] = struct{}{}
 			if depth > 0 {
-				depth--;
+				depth--
 			}
 
-			err := w.run(link, depth)
+			err := w.runSync(link, depth)
 			if err != nil {
-				return err
+				return nil
 			}
 		}
 	}
 
 	return nil
+}
+
+func (w *wget) run(root string, depth int) ([]string, error) {
+	if depth == 0 {
+		return []string{}, nil
+	}
+
+	fmt.Println("Visit", root, "depth", depth)
+
+	p, err := w.download(root)
+	if err != nil {
+		return nil, err
+	}
+
+	url, err := url.Parse(root)
+	if err != nil {
+		return nil, err
+	}
+
+	doc, err := w.parseHtml(bytes.NewReader(p))
+	if err != nil {
+		return nil, err
+	}
+
+	err = w.save(url.Path, bytes.NewReader(p))
+	if err != nil {
+		return nil, err
+	}
+
+	links, err := w.findLinks(doc)
+	if err != nil {
+		return nil, err
+	}
+
+	return links, nil
 }
 
 func (w *wget) download(url string) ([]byte, error) {
@@ -130,8 +195,8 @@ func (w *wget) save(url string, body io.Reader) error {
 
 	p := filepath.Join(w.dir, url+".html")
 	if err := os.MkdirAll(filepath.Dir(p), 0770); err != nil {
-        return err
-    }
+		return err
+	}
 
 	file, err := os.Create(p)
 	if err != nil {
@@ -155,7 +220,7 @@ func (w *wget) findLinks(doc *goquery.Document) ([]string, error) {
 		if strings.HasPrefix(href, "/") {
 			u, err := url.Parse(href)
 			if err != nil {
-				return 
+				return
 			}
 			href, _ = url.JoinPath(w.url.String(), u.Path)
 			links = append(links, href)
@@ -173,9 +238,9 @@ func main() {
 		depth int
 	)
 
-	flag.StringVar(&siteUrl, "url", "", "root url")
-	flag.StringVar(&dir, "dir", ".", "save dir")
-	flag.IntVar(&depth, "depth", -1, "max recurstion depth")
+	flag.StringVar(&siteUrl, "url", defaultUrl, "root url")
+	flag.StringVar(&dir, "dir", defaultUrl, "save dir")
+	flag.IntVar(&depth, "depth", defaultDepth, "max recurstion depth")
 
 	flag.Parse()
 
@@ -184,7 +249,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	pool, err := ants.NewPool(25)
+	pool, err := ants.NewPool(defaultPoolSize)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -198,7 +263,7 @@ func main() {
 
 	wget := NewWget(u, dir, pool, depth)
 
-	err = wget.RunSync()
+	err = wget.RunAsync()
 	if err != nil {
 		fmt.Println(err)
 	}
