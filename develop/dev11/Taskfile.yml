@@ -1,0 +1,28 @@
+version: '3'
+
+tasks:
+  build:
+    cmds:
+      - docker-compose -f docker-compose.yml build
+
+  up:
+    cmds:
+      - docker-compose -f docker-compose.yml up
+
+  run:
+    cmds:
+      - task: build
+      - task: up
+
+  migrate:
+    cmds:
+      - migrate -database postgres://postgres:postgres@localhost:5432/events?sslmode=disable -path db/migrations up
+
+  test:
+    cmds:
+      - go test -v -cover ./...
+
+  cover:
+    cmds:
+      - go test -v -coverprofile=coverage.out ./...
+      - go tool cover -html=coverage.out

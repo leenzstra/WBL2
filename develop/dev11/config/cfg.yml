@@ -1,0 +1,11 @@
+db:
+  username: "postgres"
+  host: "db"
+  port: "5432"
+  dbname: "events"
+  password: "postgres"
+  sslmode: "disable"
+
+server:
+  port: "80"
+  host: "0.0.0.0"
